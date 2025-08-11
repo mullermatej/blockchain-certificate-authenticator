@@ -3,27 +3,102 @@ const cors = require('cors');
 const multer = require('multer');
 const { ethers } = require('ethers');
 
+// Load environment variables
+require('dotenv').config();
+
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
+}));
 app.use(express.json());
 
 // Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Blockchain Configuration ---
-// Replace with actual contract address and ABI
-const CONTRACT_ADDRESS = '0x...'; // TODO: Replace with contract address
+// Replace with actual contract address after deployment
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '0x...'; // TODO: Replace with contract address after deployment
 const CONTRACT_ABI = [
-    // TODO: Replace with contract's ABI
-    // Example: "function verify(bytes32 certificateHash) public view returns (bool)"
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "_certificateHash",
+                "type": "bytes32"
+            }
+        ],
+        "name": "verify",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "_certificateHash",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "string",
+                "name": "_metadata",
+                "type": "string"
+            }
+        ],
+        "name": "registerCertificate",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "_certificateHash",
+                "type": "bytes32"
+            }
+        ],
+        "name": "getCertificateInfo",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "registrar",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "metadata",
+                "type": "string"
+            },
+            {
+                "internalType": "bool",
+                "name": "exists",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
 ];
 
-// Connect to the blockchain (using a public provider for now)
-// For production, use a more reliable provider like Infura or Alchemy
-const provider = new ethers.JsonRpcProvider('https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID'); // TODO: Replace with provider URL
+// Connect to Polygon Amoy Testnet (Mumbai is deprecated)
+// You can get a free RPC URL from Infura, Alchemy, or use public endpoints
+const PROVIDER_URL = process.env.PROVIDER_URL || 'https://rpc-amoy.polygon.technology';
+const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
 let contract;
 
 try {

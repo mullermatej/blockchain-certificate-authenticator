@@ -35,7 +35,7 @@ function App() {
 
       if (response.ok) {
         setVerificationStatus(data.message);
-        setStatusColor(data.valid ? 'green' : 'red');
+        setStatusColor(data.success ? 'green' : 'red');
       } else {
         setVerificationStatus(data.message || 'An error occurred during verification.');
         setStatusColor('red');
