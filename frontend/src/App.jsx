@@ -1,33 +1,37 @@
-import { useState } from 'react';
-import './App.css';
+import { useState } from "react";
+import "./App.css";
+import { getConfig } from "../config/client";
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [verificationStatus, setVerificationStatus] = useState('Awaiting verification');
-  const [statusColor, setStatusColor] = useState('gray');
+  const [verificationStatus, setVerificationStatus] = useState(
+    "Awaiting verification"
+  );
+  const [statusColor, setStatusColor] = useState("gray");
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
-    setVerificationStatus('File selected. Ready to verify.');
-    setStatusColor('orange');
+    setVerificationStatus("File selected. Ready to verify.");
+    setStatusColor("orange");
   };
 
   const handleVerify = async () => {
     if (!selectedFile) {
-      setVerificationStatus('Please select a certificate file first.');
-      setStatusColor('red');
+      setVerificationStatus("Please select a certificate file first.");
+      setStatusColor("red");
       return;
     }
 
-    setVerificationStatus('Verifying...');
-    setStatusColor('orange');
+    setVerificationStatus("Verifying...");
+    setStatusColor("orange");
 
     const formData = new FormData();
-    formData.append('certificate', selectedFile);
+    formData.append("certificate", selectedFile);
 
     try {
-      const response = await fetch('http://localhost:3001/api/verify', {
-        method: 'POST',
+      const cfg = getConfig();
+      const response = await fetch(`${cfg.backendUrl}/api/verify`, {
+        method: "POST",
         body: formData,
       });
 
@@ -35,15 +39,19 @@ function App() {
 
       if (response.ok) {
         setVerificationStatus(data.message);
-        setStatusColor(data.success ? 'green' : 'red');
+        setStatusColor(data.success ? "green" : "red");
       } else {
-        setVerificationStatus(data.message || 'An error occurred during verification.');
-        setStatusColor('red');
+        setVerificationStatus(
+          data.message || "An error occurred during verification."
+        );
+        setStatusColor("red");
       }
     } catch (error) {
-      console.error('Verification error:', error);
-      setVerificationStatus('Verification failed. Check the console for details.');
-      setStatusColor('red');
+      console.error("Verification error:", error);
+      setVerificationStatus(
+        "Verification failed. Check the console for details."
+      );
+      setStatusColor("red");
     }
   };
 
@@ -51,18 +59,22 @@ function App() {
     <div className="container">
       <header>
         <h1>Blockchain Certificate Authenticator</h1>
-        <p>Upload a certificate to verify its authenticity on the blockchain.</p>
+        <p>
+          Upload a certificate to verify its authenticity on the blockchain.
+        </p>
       </header>
       <main>
         <div className="upload-section">
           <label htmlFor="certificate-upload" className="upload-label">
-            {selectedFile ? `Selected: ${selectedFile.name}` : 'Click to Upload Certificate'}
+            {selectedFile
+              ? `Selected: ${selectedFile.name}`
+              : "Click to Upload Certificate"}
           </label>
           <input
             id="certificate-upload"
             type="file"
             onChange={handleFileChange}
-            accept=".pdf,.json,.pem" 
+            accept=".pdf,.json,.pem"
           />
         </div>
         <button onClick={handleVerify} className="verify-button">
@@ -83,4 +95,3 @@ function App() {
 }
 
 export default App;
-

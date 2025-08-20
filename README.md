@@ -1,4 +1,4 @@
-# Blockchain certificate authenticator
+# Blockchain Certificate Authenticator
 
 A simple Web3 application for storing and verifying document hashes on the blockchain.
 
@@ -15,7 +15,46 @@ A simple Web3 application for storing and verifying document hashes on the block
 - Ethers.js
 - Remix IDE (for smart contract deployment)
 - MetaMask (for wallet interaction)
-- Polygon Mumbai Testnet
+- Polygon Amoy Testnet
+
+## Setup
+
+1. Clone the repository:
+
+   ```sh
+   git clone <repo-url>
+   cd blockchain-certificate-authenticator
+   ```
+
+2. Copy environment template:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+   Fill in your own RPC URL, contract address, etc.
+   Both backend and frontend now read from this single root .env.
+
+3. Install dependencies:
+
+   ```sh
+   cd backend && npm install
+   cd ../frontend && npm install
+   ```
+
+4. Run the backend:
+
+   ```sh
+   cd backend
+   npm run dev
+   ```
+
+5. Run the frontend:
+
+   ```sh
+   cd frontend
+   npm run dev
+   ```
 
 ---
 
