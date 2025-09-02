@@ -49,11 +49,15 @@ contract CertificateAuthenticator {
     /**
      * @dev Register a new certificate hash on the blockchain
      * @param _certificateHash The hash of the certificate to register
-     * @param _metadata Optional metadata about the certificate
+     * @param _metadata Optional metadata about the certificate (keep under 1KB for gas efficiency)
      */
-    function registerCertificate(bytes32 _certificateHash, string memory _metadata) external {
+    function registerCertificate(bytes32 _certificateHash, string memory _metadata) 
+        external 
+        whenNotPaused 
+    {
         require(_certificateHash != bytes32(0), "Certificate hash cannot be empty");
         require(!certificates[_certificateHash].exists, "Certificate already registered");
+        require(bytes(_metadata).length <= 1024, "Metadata too large (max 1KB)");
         
         // Create and store the certificate
         certificates[_certificateHash] = Certificate({
@@ -135,6 +139,7 @@ contract CertificateAuthenticator {
     
     function togglePause() external onlyOwner {
         paused = !paused;
+        emit ContractPauseToggled(paused, msg.sender);
     }
     
     modifier whenNotPaused() {
@@ -142,13 +147,6 @@ contract CertificateAuthenticator {
         _;
     }
     
-    /**
-     * @dev Register certificate with pause check
-     */
-    function registerCertificateSafe(bytes32 _certificateHash, string memory _metadata) 
-        external 
-        whenNotPaused 
-    {
-        registerCertificate(_certificateHash, _metadata);
-    }
+    // Event for pause toggle
+    event ContractPauseToggled(bool paused, address indexed by);
 }
