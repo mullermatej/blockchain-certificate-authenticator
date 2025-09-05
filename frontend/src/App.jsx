@@ -8,6 +8,23 @@ function App() {
 	const [statusColor, setStatusColor] = useState('gray');
 	const [mode, setMode] = useState('verify'); // "verify" or "register"
 	const [isLoading, setIsLoading] = useState(false);
+	const [currentHash, setCurrentHash] = useState(null);
+	const [justCopied, setJustCopied] = useState(false);
+
+	const copyHashToClipboard = async () => {
+		if (currentHash && !justCopied) {
+			try {
+				await navigator.clipboard.writeText(currentHash);
+				setJustCopied(true);
+				// Reset after 2 seconds
+				setTimeout(() => {
+					setJustCopied(false);
+				}, 2000);
+			} catch (err) {
+				console.error('Failed to copy hash: ', err);
+			}
+		}
+	};
 
 	const handleFileChange = (event) => {
 		const file = event.target.files[0];
@@ -22,8 +39,32 @@ function App() {
 		}
 
 		setSelectedFile(file);
-		setVerificationStatus(`File selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB). Ready to ${mode}.`);
+		setCurrentHash(null); // Reset hash when new file is selected
+		setJustCopied(false); // Reset copy state
+		setVerificationStatus(
+			`File selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB). Ready to ${
+				mode === 'verify' ? 'verify' : 'hash'
+			}.`
+		);
 		setStatusColor('blue');
+	};
+
+	const handleModeChange = (newMode) => {
+		setMode(newMode);
+		setCurrentHash(null); // Reset hash when switching modes
+		setJustCopied(false); // Reset copy state
+		// Reset status message when switching modes
+		if (selectedFile) {
+			setVerificationStatus(
+				`File selected: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB). Ready to ${
+					newMode === 'verify' ? 'verify' : 'hash'
+				}.`
+			);
+			setStatusColor('blue');
+		} else {
+			setVerificationStatus('Select a certificate file to get started');
+			setStatusColor('gray');
+		}
 	};
 
 	const handleVerify = async () => {
@@ -33,8 +74,9 @@ function App() {
 			return;
 		}
 
-		setVerificationStatus(mode === 'verify' ? 'Verifying...' : 'Registering...');
+		setVerificationStatus(mode === 'verify' ? 'Verifying...' : 'Generating hash...');
 		setStatusColor('orange');
+		setIsLoading(true);
 
 		const formData = new FormData();
 		formData.append('certificate', selectedFile);
@@ -55,26 +97,29 @@ function App() {
 			if (response.ok) {
 				let message = data.message;
 
-				// Enhance registration response with clearer instructions
-				if (mode === 'register' && data.success && data.hash) {
-					message += `\n\n📋 Your Certificate Hash: ${data.hash}\n\n🦊 Next Steps:\n1. Go to PolygonScan contract page\n2. Use "Write Contract" → "registerCertificate"\n3. Enter your hash and confirm with MetaMask\n4. Then verify the same file to see it as valid!`;
+				// Store the hash for copy functionality
+				if (data.hash) {
+					setCurrentHash(data.hash);
 				}
 
-				// Show hash for transparency in verification too
-				if (data.hash && mode === 'verify') {
-					message += `\n\nCertificate Hash: ${data.hash}`;
-				}
-
+				// Don't append hash to message - we'll display it separately
 				setVerificationStatus(message);
 				setStatusColor(data.success ? 'green' : mode === 'register' ? 'orange' : 'red');
 			} else {
-				setVerificationStatus(data.message || `An error occurred during ${mode}.`);
+				setVerificationStatus(
+					data.message ||
+						`An error occurred during ${mode === 'verify' ? 'verification' : 'hash generation'}.`
+				);
 				setStatusColor('red');
 			}
 		} catch (error) {
 			console.error(`${mode} error:`, error);
-			setVerificationStatus(`${mode} failed. Check the console for details.`);
+			setVerificationStatus(
+				`${mode === 'verify' ? 'Verification' : 'Hash generation'} failed. Check the console for details.`
+			);
 			setStatusColor('red');
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -88,15 +133,15 @@ function App() {
 				<div className="mode-selector">
 					<button
 						className={`mode-button ${mode === 'verify' ? 'active' : ''}`}
-						onClick={() => setMode('verify')}
+						onClick={() => handleModeChange('verify')}
 					>
-						Verify Certificate
+						Verify
 					</button>
 					<button
 						className={`mode-button ${mode === 'register' ? 'active' : ''}`}
-						onClick={() => setMode('register')}
+						onClick={() => handleModeChange('register')}
 					>
-						Register Certificate
+						Hash File
 					</button>
 				</div>
 
@@ -107,7 +152,7 @@ function App() {
 					>
 						{selectedFile
 							? `Selected: ${selectedFile.name}`
-							: `Click to Upload Certificate to ${mode === 'verify' ? 'Verify' : 'Register'}`}
+							: `Click to Upload Certificate to ${mode === 'verify' ? 'Verify' : 'Hash'}`}
 					</label>
 					<input
 						id="certificate-upload"
@@ -121,20 +166,42 @@ function App() {
 					className="verify-button"
 					disabled={isLoading}
 				>
-					{isLoading ? '⏳ Processing...' : mode === 'verify' ? 'Verify Certificate' : 'Register Certificate'}
+					{isLoading ? '⏳ Processing...' : mode === 'verify' ? 'Verify Certificate' : 'Get Hash'}
 				</button>
 				<div className="status-section">
-					<h2>{mode === 'verify' ? 'Verification Status' : 'Registration Status'}</h2>
+					<h2>{mode === 'verify' ? 'Verification Status' : 'File Hash'}</h2>
 					<p
 						className="status-text"
 						style={{ color: statusColor }}
 					>
 						{verificationStatus}
 					</p>
+					{currentHash && (
+						<>
+							<div className="hash-text">
+								{mode === 'verify' ? 'Certificate Hash:' : 'Your Certificate Hash:'}
+							</div>
+							<div className="hash-text">{currentHash}</div>
+						</>
+					)}
+					{currentHash && (
+						<button
+							onClick={copyHashToClipboard}
+							className="copy-hash-button"
+							type="button"
+							disabled={justCopied}
+						>
+							{justCopied ? (
+								<span className="checkmark"></span>
+							) : (
+								<span className="copy-button-text">Copy Hash</span>
+							)}
+						</button>
+					)}
 				</div>
 			</main>
 			<footer>
-				<p>&copy; 2025 Certificate Authenticator Inc.</p>
+				<p>&copy; 2025 Blockchain Certificate Authenticator</p>
 			</footer>
 		</div>
 	);

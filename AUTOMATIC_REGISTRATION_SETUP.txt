@@ -1,5 +1,0 @@
-
-# Add this line to your .env file for automatic registration:
-# SERVER_PRIVATE_KEY=your_wallet_private_key_here
-# WARNING: Use a dedicated wallet, never your personal wallet!
-

@@ -1,17 +1,17 @@
-# 🔐 Blockchain Certificate Authenticator
+# Blockchain Certificate Authenticator
 
-A complete Web3 application for storing and verifying document hashes on the Polygon blockchain.
+A Web3 application for storing and verifying document hashes on the Polygon blockchain.
 
-## ✨ Features
+## Features
 
--   📁 **Certificate Upload & Verification** - Upload any document and verify its authenticity
--   🔗 **Blockchain Integration** - Secure verification using Polygon Amoy testnet
--   🎯 **Dual Mode Operation** - Both verify existing certificates and register new ones
--   🛡️ **Security Features** - File size validation, hash-based verification
--   🎨 **Modern UI** - Clean, responsive interface with real-time feedback
--   ⚡ **Fast Performance** - Optimized for quick verification and registration
+-   **Certificate Upload & Verification** - Upload any document and verify its authenticity
+-   **Blockchain Integration** - Secure verification using Polygon Amoy testnet
+-   **Dual Mode Operation** - Both verify existing certificates and register new ones
+-   **Security Features** - File size validation, hash-based verification
+-   **Modern UI** - Clean, responsive interface with real-time feedback
+-   **Fast Performance** - Optimized for quick verification and registration
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 -   **Frontend:** React.js + Vite
 -   **Backend:** Node.js + Express.js
@@ -19,7 +19,7 @@ A complete Web3 application for storing and verifying document hashes on the Pol
 -   **Web3:** Ethers.js for blockchain interaction
 -   **Deployment:** Ready for Vercel/Netlify (frontend) + Railway/Heroku (backend)
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Clone the repository:**
 
@@ -54,9 +54,9 @@ A complete Web3 application for storing and verifying document hashes on the Pol
 
 5. **Open your browser:** Navigate to `http://localhost:5173`
 
-## 📋 Configuration
+## Configuration
 
-### Environment Variables (.env):
+### Environment Variables
 
 ```env
 # Blockchain Configuration
@@ -76,7 +76,7 @@ VITE_CONTRACT_ADDRESS=0xF42657cBa768452f82BBa9ecE3B0E6E1c3b18de9
 VITE_BACKEND_URL=http://localhost:3001
 ```
 
-## 🧪 Testing
+## Testing
 
 See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for comprehensive testing instructions.
 
@@ -91,7 +91,7 @@ echo "test content" > test.txt
 curl -X POST -F "certificate=@test.txt" http://localhost:3001/api/verify
 ```
 
-## 🚀 Deployment
+## Deployment
 
 See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for production deployment instructions.
 

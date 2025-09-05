@@ -1,24 +1,28 @@
-# 🧪 Complete Testing Guide
+# Testing Guide
 
-## Testing the Full Application Stack
+## Prerequisites
 
-### Prerequisites
+Before testing, make sure you have:
 
 -   Backend running on `http://localhost:3001`
 -   Frontend running on `http://localhost:5173`
 -   Contract deployed at: `0xF42657cBa768452f82BBa9ecE3B0E6E1c3b18de9`
 
-## 🚀 Quick Start Testing
+## Basic Testing
 
-### 1. **Health Check**
+### 1. Health Check
+
+Test if the backend is running:
 
 ```bash
 curl http://localhost:3001/api/health
 ```
 
-**Expected:** `{"status":"ok","chainId":80002,"rpcSet":true,"hasContractAddress":true}`
+Expected response: `{"status":"ok","chainId":80002,"rpcSet":true,"hasContractAddress":true}`
 
-### 2. **Test Certificate Verification**
+### 2. Certificate Verification
+
+Create a test file and verify it:
 
 ```bash
 # Create a test file
@@ -28,16 +32,17 @@ echo "This is my test certificate content" > test-cert.txt
 curl -X POST -F "certificate=@test-cert.txt" http://localhost:3001/api/verify
 ```
 
-**Expected:** `{"success":false,"message":"Certificate is not valid or not found on the blockchain."}`
+Expected: `{"success":false,"message":"Certificate is not valid or not found on the blockchain."}`
 
-### 3. **Test Certificate Registration**
+### 3. Certificate Registration
+
+Test the registration endpoint:
 
 ```bash
-# Test registration endpoint
 curl -X POST -F "certificate=@test-cert.txt" -F "metadata=Test certificate" http://localhost:3001/api/register
 ```
 
-**Expected:** Hash generation and MetaMask instructions
+This should return a hash and MetaMask instructions.
 
 ## 🌐 Frontend Testing
 
