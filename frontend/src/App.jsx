@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import { getConfig } from '../config/client';
 
@@ -6,12 +6,79 @@ function App() {
 	const [selectedFile, setSelectedFile] = useState(null);
 	const [verificationStatus, setVerificationStatus] = useState('Select a certificate file to get started');
 	const [statusColor, setStatusColor] = useState('gray');
-	const [mode, setMode] = useState('verify'); // "verify" or "register"
 	const [isLoading, setIsLoading] = useState(false);
 	const [currentHash, setCurrentHash] = useState(null);
 	const [justCopied, setJustCopied] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [fileInfo, setFileInfo] = useState(null);
+	const [recentFiles, setRecentFiles] = useState([]);
+	const [showAllRecent, setShowAllRecent] = useState(false);
+	const [copiedHashes, setCopiedHashes] = useState(new Set());
+
+	// Load recent files from localStorage on component mount
+	useEffect(() => {
+		const savedRecentFiles = localStorage.getItem('bca-recent-files');
+		if (savedRecentFiles) {
+			try {
+				setRecentFiles(JSON.parse(savedRecentFiles));
+			} catch (error) {
+				console.error('Error loading recent files:', error);
+				localStorage.removeItem('bca-recent-files');
+			}
+		}
+	}, []);
+
+	// Save recent files to localStorage whenever it changes
+	useEffect(() => {
+		if (recentFiles.length > 0) {
+			localStorage.setItem('bca-recent-files', JSON.stringify(recentFiles));
+		}
+	}, [recentFiles]);
+
+	// Add file to recent files list
+	const addToRecentFiles = (file, hash, verificationResult) => {
+		const fileEntry = {
+			id: Date.now(), // Simple ID based on timestamp
+			name: file.name,
+			size: file.size,
+			type: file.name.split('.').pop()?.toUpperCase() || 'Unknown',
+			hash: hash,
+			mode: 'verify', // Always verify mode now
+			result: verificationResult, // 'verified', 'not-found'
+			timestamp: new Date().toISOString(),
+			formattedDate: new Date().toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit',
+			}),
+		};
+
+		setRecentFiles((prev) => {
+			// Remove any existing entry with the same name and hash to avoid duplicates
+			const filtered = prev.filter((item) => !(item.name === file.name && item.hash === hash));
+			// Add new entry at the beginning and limit to 10 recent files
+			return [fileEntry, ...filtered].slice(0, 10);
+		});
+	};
+
+	// Clear all recent files
+	const clearRecentFiles = () => {
+		setRecentFiles([]);
+		localStorage.removeItem('bca-recent-files');
+	};
+
+	// Delete individual recent file
+	const deleteRecentFile = (fileId) => {
+		setRecentFiles((prev) => {
+			const updated = prev.filter((file) => file.id !== fileId);
+			if (updated.length === 0) {
+				localStorage.removeItem('bca-recent-files');
+			}
+			return updated;
+		});
+	};
 
 	// Extract file information
 	const getFileInfo = (file) => {
@@ -20,28 +87,26 @@ function App() {
 		const sizeInBytes = file.size;
 		const sizeInKB = (sizeInBytes / 1024).toFixed(1);
 		const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
-		
+
 		// Format file size
-		const formattedSize = sizeInBytes < 1024 * 1024 
-			? `${sizeInKB} KB` 
-			: `${sizeInMB} MB`;
+		const formattedSize = sizeInBytes < 1024 * 1024 ? `${sizeInKB} KB` : `${sizeInMB} MB`;
 
 		// Get file type/extension
 		const fileExtension = file.name.split('.').pop()?.toUpperCase() || 'Unknown';
-		
+
 		// Get MIME type
 		const mimeType = file.type || 'Unknown';
-		
+
 		// Get last modified date (creation date isn't available in browsers for security reasons)
 		const lastModified = file.lastModified ? new Date(file.lastModified) : null;
-		const formattedDate = lastModified 
+		const formattedDate = lastModified
 			? lastModified.toLocaleDateString('en-US', {
-				year: 'numeric',
-				month: 'short',
-				day: 'numeric',
-				hour: '2-digit',
-				minute: '2-digit'
-			})
+					year: 'numeric',
+					month: 'short',
+					day: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit',
+			  })
 			: 'Unknown';
 
 		return {
@@ -50,7 +115,7 @@ function App() {
 			sizeInBytes,
 			type: fileExtension,
 			mimeType,
-			lastModified: formattedDate
+			lastModified: formattedDate,
 		};
 	};
 
@@ -66,6 +131,24 @@ function App() {
 			} catch (err) {
 				console.error('Failed to copy hash: ', err);
 			}
+		}
+	};
+
+	// Copy hash from recent files with feedback
+	const copyRecentHash = async (hash) => {
+		try {
+			await navigator.clipboard.writeText(hash);
+			setCopiedHashes((prev) => new Set(prev).add(hash));
+			// Reset after 2 seconds
+			setTimeout(() => {
+				setCopiedHashes((prev) => {
+					const newSet = new Set(prev);
+					newSet.delete(hash);
+					return newSet;
+				});
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy hash: ', err);
 		}
 	};
 
@@ -86,11 +169,7 @@ function App() {
 		setFileInfo(getFileInfo(file)); // Set file info
 		setCurrentHash(null); // Reset hash when new file is selected
 		setJustCopied(false); // Reset copy state
-		setVerificationStatus(
-			`File selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB). Ready to ${
-				mode === 'verify' ? 'verify' : 'hash'
-			}.`
-		);
+		setVerificationStatus(`File selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB). Ready to verify.`);
 		setStatusColor('blue');
 	};
 
@@ -129,25 +208,6 @@ function App() {
 		}
 	};
 
-	const handleModeChange = (newMode) => {
-		setMode(newMode);
-		setCurrentHash(null); // Reset hash when switching modes
-		setJustCopied(false); // Reset copy state
-		// Reset status message when switching modes
-		if (selectedFile) {
-			setVerificationStatus(
-				`File selected: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB). Ready to ${
-					newMode === 'verify' ? 'verify' : 'hash'
-				}.`
-			);
-			setStatusColor('blue');
-		} else {
-			setVerificationStatus('Select a certificate file to get started');
-			setStatusColor('gray');
-			setFileInfo(null); // Clear file info when no file is selected
-		}
-	};
-
 	const handleVerify = async () => {
 		if (!selectedFile) {
 			setVerificationStatus('Please select a certificate file first.');
@@ -155,19 +215,16 @@ function App() {
 			return;
 		}
 
-		setVerificationStatus(mode === 'verify' ? 'Verifying...' : 'Generating hash...');
+		setVerificationStatus('Verifying...');
 		setStatusColor('orange');
 		setIsLoading(true);
 
 		const formData = new FormData();
 		formData.append('certificate', selectedFile);
-		if (mode === 'register') {
-			formData.append('metadata', `Certificate registered via web app on ${new Date().toISOString()}`);
-		}
 
 		try {
 			const cfg = getConfig();
-			const endpoint = mode === 'verify' ? '/api/verify' : '/api/register';
+			const endpoint = '/api/verify';
 			const response = await fetch(`${cfg.backendUrl}${endpoint}`, {
 				method: 'POST',
 				body: formData,
@@ -181,23 +238,22 @@ function App() {
 				// Store the hash for copy functionality
 				if (data.hash) {
 					setCurrentHash(data.hash);
+
+					// Add to recent files list
+					const result = data.success ? 'verified' : 'not-found';
+					addToRecentFiles(selectedFile, data.hash, result);
 				}
 
 				// Don't append hash to message - we'll display it separately
 				setVerificationStatus(message);
-				setStatusColor(data.success ? 'green' : mode === 'register' ? 'orange' : 'red');
+				setStatusColor(data.success ? 'green' : 'red');
 			} else {
-				setVerificationStatus(
-					data.message ||
-						`An error occurred during ${mode === 'verify' ? 'verification' : 'hash generation'}.`
-				);
+				setVerificationStatus(data.message || 'An error occurred during verification.');
 				setStatusColor('red');
 			}
 		} catch (error) {
-			console.error(`${mode} error:`, error);
-			setVerificationStatus(
-				`${mode === 'verify' ? 'Verification' : 'Hash generation'} failed. Check the console for details.`
-			);
+			console.error('Verification error:', error);
+			setVerificationStatus('Verification failed. Check the console for details.');
 			setStatusColor('red');
 		} finally {
 			setIsLoading(false);
@@ -211,21 +267,6 @@ function App() {
 				<p>Upload a certificate to verify its authenticity on the blockchain.</p>
 			</header>
 			<main>
-				<div className="mode-selector">
-					<button
-						className={`mode-button ${mode === 'verify' ? 'active' : ''}`}
-						onClick={() => handleModeChange('verify')}
-					>
-						Verify
-					</button>
-					<button
-						className={`mode-button ${mode === 'register' ? 'active' : ''}`}
-						onClick={() => handleModeChange('register')}
-					>
-						Hash File
-					</button>
-				</div>
-
 				<div className="upload-section">
 					<div
 						className={`upload-area ${isDragOver ? 'drag-over' : ''}`}
@@ -248,8 +289,7 @@ function App() {
 							) : (
 								<>
 									<span className="upload-text">
-										Drag & Drop or Click to Upload Certificate to{' '}
-										{mode === 'verify' ? 'Verify' : 'Hash'}
+										Drag & Drop or Click to Upload Certificate to Verify
 									</span>
 									<span className="file-types">Supported: PDF, JSON, PEM, TXT</span>
 								</>
@@ -298,10 +338,10 @@ function App() {
 					className="verify-button"
 					disabled={isLoading}
 				>
-					{isLoading ? '⏳ Processing...' : mode === 'verify' ? 'Verify Certificate' : 'Get Hash'}
+					{isLoading ? '⏳ Processing...' : 'Verify Certificate'}
 				</button>
 				<div className="status-section">
-					<h2>{mode === 'verify' ? 'Verification Status' : 'File Hash'}</h2>
+					<h2>Verification Status</h2>
 					<p
 						className="status-text"
 						style={{ color: statusColor }}
@@ -310,10 +350,9 @@ function App() {
 					</p>
 					{currentHash && (
 						<>
-							<div className="hash-text">
-								{mode === 'verify' ? 'Certificate Hash:' : 'Your Certificate Hash:'}
+							<div className="main-hash-display">
+								<code className="main-hash-code">{currentHash}</code>
 							</div>
-							<div className="hash-text">{currentHash}</div>
 						</>
 					)}
 					{currentHash && (
@@ -331,6 +370,81 @@ function App() {
 						</button>
 					)}
 				</div>
+
+				{/* Recent Files Section */}
+				{recentFiles.length > 0 && (
+					<div className="recent-files-section">
+						<div className="recent-files-header">
+							<h3>Recent Verifications</h3>
+							<button
+								className="clear-recent-btn"
+								onClick={clearRecentFiles}
+								title="Clear all recent files"
+							>
+								Clear All
+							</button>
+						</div>
+						<div className="recent-files-list">
+							{(showAllRecent ? recentFiles : recentFiles.slice(0, 2)).map((file) => (
+								<div
+									key={file.id}
+									className={`recent-file-item ${file.result}`}
+								>
+									<div className="file-item-header">
+										<div className="file-info">
+											<div className="file-name">{file.name}</div>
+											<div className="file-details">
+												<span className="file-type">{file.type}</span>
+												<span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
+												<span className="file-date">{file.formattedDate}</span>
+											</div>
+										</div>
+										<button
+											className="delete-file-btn"
+											onClick={() => deleteRecentFile(file.id)}
+											title="Delete this entry"
+										>
+											<div className="delete-icon"></div>
+										</button>
+									</div>
+									<div className="file-status">
+										<span className={`status-badge ${file.result}`}>
+											{file.result === 'verified' && '✓ Verified'}
+											{file.result === 'not-found' && '✗ Not Found'}
+											{file.result === 'hashed' && '# Hashed'}
+										</span>
+										<span className="mode-badge">{file.mode}</span>
+									</div>
+									<div className="file-hash">
+										<code className="hash-code">{file.hash}</code>
+										<button
+											className="copy-hash-small"
+											onClick={() => copyRecentHash(file.hash)}
+											title="Copy hash"
+											disabled={copiedHashes.has(file.hash)}
+										>
+											{copiedHashes.has(file.hash) ? (
+												<span className="checkmark-small"></span>
+											) : (
+												<div className="copy-icon"></div>
+											)}
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+						{recentFiles.length > 2 && (
+							<div className="show-more-section">
+								<button
+									className="show-more-btn"
+									onClick={() => setShowAllRecent(!showAllRecent)}
+								>
+									{showAllRecent ? 'Show Less' : `Show ${recentFiles.length - 2} More`}
+								</button>
+							</div>
+						)}
+					</div>
+				)}
 			</main>
 			<footer>
 				<p>&copy; 2025 Blockchain Certificate Authenticator</p>
