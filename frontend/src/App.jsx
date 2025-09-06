@@ -14,6 +14,8 @@ function App() {
 	const [recentFiles, setRecentFiles] = useState([]);
 	const [showAllRecent, setShowAllRecent] = useState(false);
 	const [copiedHashes, setCopiedHashes] = useState(new Set());
+	const [registrationInfo, setRegistrationInfo] = useState(null);
+	const [verificationData, setVerificationData] = useState(null);
 
 	// Load recent files from localStorage on component mount
 	useEffect(() => {
@@ -43,7 +45,6 @@ function App() {
 			size: file.size,
 			type: file.name.split('.').pop()?.toUpperCase() || 'Unknown',
 			hash: hash,
-			mode: 'verify', // Always verify mode now
 			result: verificationResult, // 'verified', 'not-found'
 			timestamp: new Date().toISOString(),
 			formattedDate: new Date().toLocaleDateString('en-US', {
@@ -152,6 +153,220 @@ function App() {
 		}
 	};
 
+	// Export verification certificate as printable document
+	const exportVerificationCertificate = () => {
+		if (!verificationData) return;
+
+		const printWindow = window.open('', '_blank');
+		const currentDate = new Date().toLocaleDateString('hr-HR', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+			timeZone: 'Europe/Zagreb',
+		});
+		const currentTime = new Date().toLocaleTimeString('hr-HR', {
+			hour: '2-digit',
+			minute: '2-digit',
+			timeZone: 'Europe/Zagreb',
+		});
+
+		const certificateHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Verification</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            font-size: 12px;
+        }
+        
+        .certificate-container {
+            border: 2px solid #37688a;
+            padding: 25px;
+            background: white;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #37688a;
+            padding-bottom: 15px;
+        }
+        
+        .header h1 {
+            color: #37688a;
+            font-size: 1.8rem;
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+        
+        .header h2 {
+            color: #666;
+            font-size: 1rem;
+            margin: 0;
+            font-weight: normal;
+        }
+        
+        .verification-badge {
+            background: #d4edda;
+            color: #155724;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            margin: 15px 0;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .detail-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #37688a;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-size: 11px;
+            word-break: break-all;
+        }
+        
+        .hash-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            border-left: 3px solid #37688a;
+        }
+        
+        .hash-title {
+            font-weight: bold;
+            color: #37688a;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+        
+        .hash-value {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            word-break: break-all;
+            color: #333;
+            line-height: 1.3;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #37688a;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .timestamp {
+            font-style: italic;
+            color: #888;
+            margin-top: 8px;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .certificate-container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate-container">
+        <div class="header">
+            <h1>Certificate Verification</h1>
+            <h2>Blockchain Certificate Authenticator</h2>
+        </div>
+        
+        <div class="verification-badge">
+            ✓ Certificate Successfully Verified
+        </div>
+        
+        <div class="details-grid">
+            <div class="detail-item">
+                <div class="detail-label">Certificate File:</div>
+                <div class="detail-value">${verificationData.fileName}</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">File Size:</div>
+                <div class="detail-value">${verificationData.fileSize}</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">Verification Date:</div>
+                <div class="detail-value">${currentDate} at ${currentTime}</div>
+            </div>
+            ${
+				verificationData.registrationInfo
+					? `
+            <div class="detail-item">
+                <div class="detail-label">Registration Date:</div>
+                <div class="detail-value">${verificationData.registrationInfo.replace('Registered on ', '')}</div>
+            </div>
+            `
+					: ''
+			}
+        </div>
+        
+        <div class="hash-section">
+            <div class="hash-title">Certificate Hash (SHA-256):</div>
+            <div class="hash-value">${verificationData.hash}</div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Blockchain Certificate Authenticator</strong></p>
+            <p>This certificate has been verified on the Polygon blockchain network.</p>
+            <p class="timestamp">Generated on ${currentDate} at ${currentTime} (Zagreb, Croatia)</p>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+
+		printWindow.document.write(certificateHtml);
+		printWindow.document.close();
+		printWindow.focus();
+
+		// Auto-trigger print dialog after a short delay
+		setTimeout(() => {
+			printWindow.print();
+		}, 500);
+	};
+
 	// Common file processing function
 	const processFile = (file) => {
 		if (!file) return;
@@ -168,6 +383,8 @@ function App() {
 		setSelectedFile(file);
 		setFileInfo(getFileInfo(file)); // Set file info
 		setCurrentHash(null); // Reset hash when new file is selected
+		setRegistrationInfo(null); // Reset registration info when new file is selected
+		setVerificationData(null); // Reset verification data when new file is selected
 		setJustCopied(false); // Reset copy state
 		setVerificationStatus(`File selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB). Ready to verify.`);
 		setStatusColor('blue');
@@ -242,6 +459,26 @@ function App() {
 					// Add to recent files list
 					const result = data.success ? 'verified' : 'not-found';
 					addToRecentFiles(selectedFile, data.hash, result);
+				}
+
+				// Store registration info if available
+				if (data.registrationInfo) {
+					setRegistrationInfo(data.registrationInfo);
+				} else {
+					setRegistrationInfo(null);
+				}
+
+				// Store verification data for export functionality (only for successful verifications)
+				if (data.success && data.hash) {
+					setVerificationData({
+						fileName: selectedFile.name,
+						fileSize: `${(selectedFile.size / 1024).toFixed(1)} KB`,
+						hash: data.hash,
+						registrationInfo: data.registrationInfo,
+						verificationDate: new Date().toISOString(),
+					});
+				} else {
+					setVerificationData(null);
 				}
 
 				// Don't append hash to message - we'll display it separately
@@ -338,7 +575,7 @@ function App() {
 					className="verify-button"
 					disabled={isLoading}
 				>
-					{isLoading ? '⏳ Processing...' : 'Verify Certificate'}
+					{isLoading ? 'Processing...' : 'Verify Certificate'}
 				</button>
 				<div className="status-section">
 					<h2>Verification Status</h2>
@@ -348,6 +585,7 @@ function App() {
 					>
 						{verificationStatus}
 					</p>
+					{registrationInfo && <p className="registration-info">{registrationInfo}</p>}
 					{currentHash && (
 						<>
 							<div className="main-hash-display">
@@ -365,8 +603,21 @@ function App() {
 							{justCopied ? (
 								<span className="checkmark"></span>
 							) : (
-								<span className="copy-button-text">Copy Hash</span>
+								<>
+									<div className="copy-icon"></div>
+									<span className="copy-button-text">Copy Hash</span>
+								</>
 							)}
+						</button>
+					)}
+					{verificationData && (
+						<button
+							onClick={exportVerificationCertificate}
+							className="export-certificate-button"
+							type="button"
+						>
+							<div className="export-icon"></div>
+							<span className="export-button-text">Export</span>
 						</button>
 					)}
 				</div>
@@ -413,7 +664,6 @@ function App() {
 											{file.result === 'not-found' && '✗ Not Found'}
 											{file.result === 'hashed' && '# Hashed'}
 										</span>
-										<span className="mode-badge">{file.mode}</span>
 									</div>
 									<div className="file-hash">
 										<code className="hash-code">{file.hash}</code>

@@ -19,7 +19,7 @@ app.use(express.json());
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Blockchain Configuration ---
-const CONTRACT_ADDRESS = cfg.contractAddress || '0x...'; // TODO: Replace with contract address after deployment
+const CONTRACT_ADDRESS = cfg.contractAddress || '0x...'; // Use address from config
 const CONTRACT_ABI = [
 	{
 		inputs: [
@@ -91,6 +91,31 @@ const CONTRACT_ABI = [
 		],
 		stateMutability: 'view',
 		type: 'function',
+	},
+	{
+		anonymous: false,
+		inputs: [
+			{
+				indexed: true,
+				internalType: 'bytes32',
+				name: 'certificateHash',
+				type: 'bytes32',
+			},
+			{
+				indexed: true,
+				internalType: 'address',
+				name: 'registrar',
+				type: 'address',
+			},
+			{
+				indexed: false,
+				internalType: 'string',
+				name: 'metadata',
+				type: 'string',
+			},
+		],
+		name: 'CertificateRegistered',
+		type: 'event',
 	},
 ];
 
@@ -246,14 +271,39 @@ app.post('/api/verify', upload.single('certificate'), async (req, res) => {
 		console.log(`Received file. Hash: ${certificateHash}`);
 
 		// 2. Check if the contract is configured
-		if (!contract) {
-			console.warn('Simulating verification because contract is not configured.');
+		// TEMP: Force simulation for testing frontend UI
+		const FORCE_SIMULATION = false; // Set to true to test frontend with mock data
+
+		if (!contract || FORCE_SIMULATION) {
+			console.warn(
+				FORCE_SIMULATION
+					? 'Using simulation mode for testing'
+					: 'Simulating verification because contract is not configured.'
+			);
 			await new Promise((resolve) => setTimeout(resolve, 1500));
 			const simulatedResult = Math.random() > 0.5;
+
+			// Add mock transaction details for testing the frontend
+			let mockTxDetails = null;
+			if (simulatedResult) {
+				mockTxDetails = {
+					txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+					blockNumber: 12345678,
+					timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+					registeredBy: '0xabcdef1234567890abcdef1234567890abcdef12',
+					gasUsed: '21000',
+					confirmations: 1234,
+					explorerUrl:
+						'https://amoy.polygonscan.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+					blockHash: '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321',
+				};
+			}
+
 			return res.json({
 				success: simulatedResult,
 				message: simulatedResult ? 'Certificate is valid (Simulated)' : 'Certificate is invalid (Simulated)',
 				hash: certificateHash,
+				txDetails: mockTxDetails,
 			});
 		}
 
@@ -263,9 +313,37 @@ app.post('/api/verify', upload.single('certificate'), async (req, res) => {
 		console.log(`Contract returned: ${isValid}`);
 
 		if (isValid) {
+			// Try to get registration date for enhanced message
+			let registrationDate = null;
+			try {
+				const certInfo = await contract.getCertificateInfo(certificateHash);
+				if (certInfo.exists) {
+					registrationDate = new Date(Number(certInfo.timestamp) * 1000);
+				}
+			} catch (error) {
+				console.log('Could not fetch registration date:', error.message);
+			}
+
+			// Create enhanced message with registration date if available
+			let message = 'Certificate has been successfully verified on the blockchain.';
+			let registrationInfo = null;
+
+			if (registrationDate) {
+				const formattedDate = registrationDate.toLocaleDateString('hr-HR', {
+					year: 'numeric',
+					month: 'numeric',
+					day: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit',
+					timeZone: 'Europe/Zagreb',
+				});
+				registrationInfo = `Registered on ${formattedDate}`;
+			}
+
 			res.json({
 				success: true,
-				message: 'Certificate has been successfully verified on the blockchain.',
+				message: message,
+				registrationInfo: registrationInfo,
 				hash: certificateHash,
 			});
 		} else {
