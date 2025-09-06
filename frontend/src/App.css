@@ -88,21 +88,67 @@ header p {
 	align-items: center;
 }
 
+.upload-area {
+	width: 100%;
+	max-width: 500px;
+	transition: all 0.3s ease;
+}
+
+.upload-area.drag-over {
+	transform: scale(1.02);
+}
+
 .upload-label {
-	display: inline-block;
-	padding: 15px 30px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 30px;
 	background-color: #e6eff3;
 	color: #37688a;
 	border: 2px dashed #a8c5d1;
-	border-radius: 8px;
+	border-radius: 12px;
 	cursor: pointer;
 	font-size: 1rem;
 	font-weight: 500;
-	transition: background-color 0.3s, color 0.3s;
+	transition: all 0.3s ease;
+	min-height: 120px;
+	text-align: center;
 }
 
 .upload-label:hover {
 	background-color: #a8c5d1;
+	color: #2a5066;
+	border-color: #37688a;
+}
+
+.upload-area.drag-over .upload-label {
+	background-color: #37688a;
+	color: white;
+	border-color: #2a5066;
+	border-style: solid;
+}
+
+.drag-text {
+	font-size: 1.2rem;
+	font-weight: 600;
+}
+
+.upload-text {
+	font-size: 1.1rem;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.file-types {
+	font-size: 0.9rem;
+	opacity: 0.8;
+	font-weight: 400;
+}
+
+.file-name {
+	font-size: 1rem;
+	font-weight: 600;
 	color: #2a5066;
 }
 

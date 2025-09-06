@@ -10,6 +10,7 @@ function App() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [currentHash, setCurrentHash] = useState(null);
 	const [justCopied, setJustCopied] = useState(false);
+	const [isDragOver, setIsDragOver] = useState(false);
 
 	const copyHashToClipboard = async () => {
 		if (currentHash && !justCopied) {
@@ -26,8 +27,8 @@ function App() {
 		}
 	};
 
-	const handleFileChange = (event) => {
-		const file = event.target.files[0];
+	// Common file processing function
+	const processFile = (file) => {
 		if (!file) return;
 
 		// Validate file size (max 10MB)
@@ -47,6 +48,41 @@ function App() {
 			}.`
 		);
 		setStatusColor('blue');
+	};
+
+	const handleFileChange = (event) => {
+		const file = event.target.files[0];
+		processFile(file);
+	};
+
+	// Drag and drop handlers
+	const handleDragOver = (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+		setIsDragOver(true);
+	};
+
+	const handleDragLeave = (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+		setIsDragOver(false);
+	};
+
+	const handleDrop = (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+		setIsDragOver(false);
+
+		const files = event.dataTransfer.files;
+		if (files.length > 1) {
+			setVerificationStatus('Please drop only one file at a time.');
+			setStatusColor('red');
+			return;
+		}
+
+		if (files.length === 1) {
+			processFile(files[0]);
+		}
 	};
 
 	const handleModeChange = (newMode) => {
@@ -146,20 +182,41 @@ function App() {
 				</div>
 
 				<div className="upload-section">
-					<label
-						htmlFor="certificate-upload"
-						className="upload-label"
+					<div
+						className={`upload-area ${isDragOver ? 'drag-over' : ''}`}
+						onDragOver={handleDragOver}
+						onDragLeave={handleDragLeave}
+						onDrop={handleDrop}
 					>
-						{selectedFile
-							? `Selected: ${selectedFile.name}`
-							: `Click to Upload Certificate to ${mode === 'verify' ? 'Verify' : 'Hash'}`}
-					</label>
-					<input
-						id="certificate-upload"
-						type="file"
-						onChange={handleFileChange}
-						accept=".pdf,.json,.pem,.txt"
-					/>
+						<label
+							htmlFor="certificate-upload"
+							className="upload-label"
+						>
+							{isDragOver ? (
+								<>
+									<span className="drag-text">Drop your file here</span>
+								</>
+							) : selectedFile ? (
+								<>
+									<span className="file-name">Selected: {selectedFile.name}</span>
+								</>
+							) : (
+								<>
+									<span className="upload-text">
+										Drag & Drop or Click to Upload Certificate to{' '}
+										{mode === 'verify' ? 'Verify' : 'Hash'}
+									</span>
+									<span className="file-types">Supported: PDF, JSON, PEM, TXT</span>
+								</>
+							)}
+						</label>
+						<input
+							id="certificate-upload"
+							type="file"
+							onChange={handleFileChange}
+							accept=".pdf,.json,.pem,.txt"
+						/>
+					</div>
 				</div>
 				<button
 					onClick={handleVerify}
