@@ -11,6 +11,48 @@ function App() {
 	const [currentHash, setCurrentHash] = useState(null);
 	const [justCopied, setJustCopied] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
+	const [fileInfo, setFileInfo] = useState(null);
+
+	// Extract file information
+	const getFileInfo = (file) => {
+		if (!file) return null;
+
+		const sizeInBytes = file.size;
+		const sizeInKB = (sizeInBytes / 1024).toFixed(1);
+		const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+		
+		// Format file size
+		const formattedSize = sizeInBytes < 1024 * 1024 
+			? `${sizeInKB} KB` 
+			: `${sizeInMB} MB`;
+
+		// Get file type/extension
+		const fileExtension = file.name.split('.').pop()?.toUpperCase() || 'Unknown';
+		
+		// Get MIME type
+		const mimeType = file.type || 'Unknown';
+		
+		// Get last modified date (creation date isn't available in browsers for security reasons)
+		const lastModified = file.lastModified ? new Date(file.lastModified) : null;
+		const formattedDate = lastModified 
+			? lastModified.toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit'
+			})
+			: 'Unknown';
+
+		return {
+			name: file.name,
+			size: formattedSize,
+			sizeInBytes,
+			type: fileExtension,
+			mimeType,
+			lastModified: formattedDate
+		};
+	};
 
 	const copyHashToClipboard = async () => {
 		if (currentHash && !justCopied) {
@@ -36,10 +78,12 @@ function App() {
 			setVerificationStatus('File too large. Maximum size is 10MB.');
 			setStatusColor('red');
 			setSelectedFile(null);
+			setFileInfo(null);
 			return;
 		}
 
 		setSelectedFile(file);
+		setFileInfo(getFileInfo(file)); // Set file info
 		setCurrentHash(null); // Reset hash when new file is selected
 		setJustCopied(false); // Reset copy state
 		setVerificationStatus(
@@ -100,6 +144,7 @@ function App() {
 		} else {
 			setVerificationStatus('Select a certificate file to get started');
 			setStatusColor('gray');
+			setFileInfo(null); // Clear file info when no file is selected
 		}
 	};
 
@@ -218,6 +263,36 @@ function App() {
 						/>
 					</div>
 				</div>
+
+				{/* File Info Panel */}
+				{fileInfo && (
+					<div className="file-info-panel">
+						<h3>File Information</h3>
+						<div className="file-info-grid">
+							<div className="info-item">
+								<span className="info-label">Name:</span>
+								<span className="info-value">{fileInfo.name}</span>
+							</div>
+							<div className="info-item">
+								<span className="info-label">Size:</span>
+								<span className="info-value">{fileInfo.size}</span>
+							</div>
+							<div className="info-item">
+								<span className="info-label">Type:</span>
+								<span className="info-value">{fileInfo.type}</span>
+							</div>
+							<div className="info-item">
+								<span className="info-label">Modified:</span>
+								<span className="info-value">{fileInfo.lastModified}</span>
+							</div>
+							<div className="info-item">
+								<span className="info-label">MIME Type:</span>
+								<span className="info-value">{fileInfo.mimeType || 'Unknown'}</span>
+							</div>
+						</div>
+					</div>
+				)}
+
 				<button
 					onClick={handleVerify}
 					className="verify-button"
