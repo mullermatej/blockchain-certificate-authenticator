@@ -1,6 +1,8 @@
 # Blockchain Certificate Authenticator
 
 Web3 application for storing and verifying document hashes on the Polygon blockchain.
+Video presentation: https://youtu.be/tgsgd4QxOp8
+Project documentation: https://docs.google.com/document/d/1RKqeTLpRUuLRHw3jy8MCAKZKo1M_aLmB/edit?usp=sharing&ouid=113109044781873073635&rtpof=true&sd=true
 
 ## Features
 
