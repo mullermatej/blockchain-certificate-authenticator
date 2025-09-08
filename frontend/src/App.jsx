@@ -343,14 +343,14 @@ function App() {
         </div>
         
         <div class="hash-section">
-            <div class="hash-title">Certificate Hash (SHA-256):</div>
+            <div class="hash-title">Certificate Hash (Keccak-256):</div>
             <div class="hash-value">${verificationData.hash}</div>
         </div>
         
         <div class="footer">
             <p><strong>Blockchain Certificate Authenticator</strong></p>
             <p>This certificate has been verified on the Polygon blockchain network.</p>
-            <p class="timestamp">Generated on ${currentDate} at ${currentTime} (Zagreb, Croatia)</p>
+            <p class="timestamp">Generated on ${currentDate} at ${currentTime} (Pula, Croatia)</p>
         </div>
     </div>
 </body>
@@ -481,7 +481,6 @@ function App() {
 					setVerificationData(null);
 				}
 
-				// Don't append hash to message - we'll display it separately
 				setVerificationStatus(message);
 				setStatusColor(data.success ? 'green' : 'red');
 			} else {

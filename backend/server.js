@@ -363,7 +363,6 @@ app.post('/api/verify', upload.single('certificate'), async (req, res) => {
 	}
 });
 
-// Start the server
 app.listen(port, () => {
 	console.log(`[server] listening on :${port} (env ${cfg.nodeEnv}, chain ${cfg.chainId})`);
 });

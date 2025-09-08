@@ -1,6 +1,3 @@
-// config/server.js
-// Central place for backend config (Node/CommonJS)
-
 let warned = false;
 
 function read(key) {
@@ -21,7 +18,7 @@ function getConfig() {
 		corsOrigin: read('CORS_ORIGIN') || 'http://localhost:5173',
 	};
 
-	// Non-fatal: warn if you haven't deployed yet
+	// Non-fatal: warn if not deployed yet
 	if (!cfg.contractAddress && !warned) {
 		warned = true;
 		console.warn('[config] CONTRACT_ADDRESS missing — backend will accept it later.');
